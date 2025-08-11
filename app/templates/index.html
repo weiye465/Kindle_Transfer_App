@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kindle Transfer - 私人电子书传输工具</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <style>
+        .drop-zone {
+            transition: all 0.3s ease;
+        }
+        .drop-zone.dragover {
+            background-color: #f0f9ff;
+            border-color: #3b82f6;
+            transform: scale(1.02);
+        }
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- 导航栏 -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <i class="fab fa-amazon text-3xl text-orange-500 mr-3"></i>
+                    <h1 class="text-xl font-bold text-gray-800">Kindle Transfer</h1>
+                    <span class="ml-3 text-sm text-gray-500">私人版 v1.0</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="showSettings()" class="text-gray-600 hover:text-gray-900">
+                        <i class="fas fa-cog text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主容器 -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- 左侧：上传区域 -->
+            <div class="lg:col-span-2">
+                <!-- 快速传输卡片 -->
+                <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-rocket text-blue-500 mr-2"></i>
+                        快速传输
+                    </h2>
+                    
+                    <!-- 拖拽上传区域 -->
+                    <div id="dropZone" class="drop-zone border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 cursor-pointer">
+                        <i class="fas fa-cloud-upload-alt text-5xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-600 mb-2">拖拽文件到这里或点击选择</p>
+                        <p class="text-sm text-gray-500">支持 PDF, EPUB, MOBI, TXT, DOC, DOCX</p>
+                        <input type="file" id="fileInput" class="hidden" accept=".pdf,.epub,.mobi,.txt,.doc,.docx">
+                        <button onclick="document.getElementById('fileInput').click()" class="mt-4 bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition">
+                            <i class="fas fa-file-upload mr-2"></i>
+                            选择文件
+                        </button>
+                    </div>
+                    
+                    <!-- 进度条 -->
+                    <div id="progressContainer" class="hidden mt-4">
+                        <div class="flex justify-between text-sm text-gray-600 mb-1">
+                            <span id="progressText">处理中...</span>
+                            <span id="progressPercent">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div id="progressBar" class="progress-bar bg-blue-500 h-2 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- 文件信息 -->
+                    <div id="fileInfo" class="hidden mt-4 p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <i class="fas fa-file-alt text-2xl text-gray-600 mr-3"></i>
+                                <div>
+                                    <p class="font-medium text-gray-800" id="fileName">-</p>
+                                    <p class="text-sm text-gray-500" id="fileSize">-</p>
+                                </div>
+                            </div>
+                            <button onclick="processFile()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition">
+                                <i class="fas fa-paper-plane mr-2"></i>
+                                发送到Kindle
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 传输历史 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-history text-green-500 mr-2"></i>
+                        传输历史
+                    </h2>
+                    <div id="historyList" class="space-y-2">
+                        <!-- 历史记录将在这里显示 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧：状态和设置 -->
+            <div class="lg:col-span-1">
+                <!-- 状态卡片 -->
+                <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-info-circle text-purple-500 mr-2"></i>
+                        当前配置
+                    </h2>
+                    <div class="space-y-3">
+                        <div class="flex items-center">
+                            <i class="fas fa-tablet-alt text-gray-400 mr-3"></i>
+                            <div>
+                                <p class="text-sm text-gray-500">Kindle邮箱</p>
+                                <p class="font-medium text-gray-800" id="currentKindleEmail">未配置</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-envelope text-gray-400 mr-3"></i>
+                            <div>
+                                <p class="text-sm text-gray-500">发送邮箱</p>
+                                <p class="font-medium text-gray-800" id="currentSenderEmail">未配置</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-server text-gray-400 mr-3"></i>
+                            <div>
+                                <p class="text-sm text-gray-500">SMTP服务器</p>
+                                <p class="font-medium text-gray-800" id="currentSmtpServer">未配置</p>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="showSettings()" class="w-full mt-4 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition">
+                        <i class="fas fa-edit mr-2"></i>
+                        修改配置
+                    </button>
+                </div>
+                
+                <!-- 使用说明 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-question-circle text-yellow-500 mr-2"></i>
+                        使用说明
+                    </h2>
+                    <ol class="space-y-2 text-sm text-gray-600">
+                        <li class="flex">
+                            <span class="font-bold mr-2">1.</span>
+                            <span>首次使用请先配置Kindle邮箱和发送邮箱</span>
+                        </li>
+                        <li class="flex">
+                            <span class="font-bold mr-2">2.</span>
+                            <span>确保发送邮箱已添加到亚马逊白名单</span>
+                        </li>
+                        <li class="flex">
+                            <span class="font-bold mr-2">3.</span>
+                            <span>拖拽或选择文件上传</span>
+                        </li>
+                        <li class="flex">
+                            <span class="font-bold mr-2">4.</span>
+                            <span>PDF文件会自动转换为EPUB格式</span>
+                        </li>
+                        <li class="flex">
+                            <span class="font-bold mr-2">5.</span>
+                            <span>点击发送，等待Kindle接收</span>
+                        </li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 设置模态框 -->
+    <div id="settingsModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white fade-in">
+            <div class="mt-3">
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                    <i class="fas fa-cog text-blue-500 mr-2"></i>
+                    配置设置
+                </h3>
+                <div class="mt-2 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Kindle邮箱</label>
+                        <input type="email" id="kindleEmail" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border" placeholder="xxx@kindle.com">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">发送邮箱</label>
+                        <input type="email" id="smtpEmail" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border" placeholder="your@email.com">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">邮箱授权码</label>
+                        <input type="password" id="smtpPassword" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border" placeholder="********">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">SMTP服务器</label>
+                        <input type="text" id="smtpServer" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border" placeholder="smtp.163.com">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">SMTP端口</label>
+                        <input type="number" id="smtpPort" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border" placeholder="465">
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button onclick="hideSettings()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                        取消
+                    </button>
+                    <button onclick="saveSettings()" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                        保存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
