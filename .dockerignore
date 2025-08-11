@@ -1,28 +1,69 @@
-__pycache__
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.so
-*.egg
-*.egg-info
-dist
-build
+# Git相关
 .git
 .gitignore
-.env
-.venv
-env/
+
+# Python相关
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.pylint.d/
+*.log
+
+# 虚拟环境
 venv/
-.vscode
-.idea
+env/
+ENV/
+.venv/
+
+# IDE相关
+.vscode/
+.idea/
 *.swp
 *.swo
 *~
 .DS_Store
+
+# 项目特定
+uploads/*
+!uploads/.gitkeep
+logs/*
+!logs/.gitkeep
+config.json
+*.db
+*.sqlite
+
+# 测试相关
+tests/
+test_*.py
+*_test.py
+
+# 文档
 README.md
-docker-compose.yml
-Dockerfile
+README_UPDATE.md
+docs/
+*.md
+
+# Docker相关（避免递归）
+Dockerfile.simple
+docker-compose*.yml
 .dockerignore
-start.bat
-start.sh
+
+# 临时文件
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup
+
+# 其他不需要的文件
+requirements-dev.txt
