@@ -1,0 +1,10 @@
+This is a sample text file for testing the Kindle Transfer App.
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
+Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
+
+这是一个用于测试的示例文本文件。
+包含中文内容以测试多语言支持。
+
+End of sample file.

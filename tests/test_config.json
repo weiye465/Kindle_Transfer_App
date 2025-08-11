@@ -1,0 +1,29 @@
+{
+  "test_kindle_email": "test@kindle.com",
+  "test_smtp_email": "test@163.com",
+  "test_smtp_password": "test_password_123",
+  "test_smtp_server": "smtp.163.com",
+  "test_smtp_port": "465",
+  "test_environments": {
+    "development": {
+      "debug": true,
+      "host": "localhost",
+      "port": 5000
+    },
+    "testing": {
+      "debug": false,
+      "host": "0.0.0.0",
+      "port": 5001
+    },
+    "production": {
+      "debug": false,
+      "host": "0.0.0.0",
+      "port": 5000
+    }
+  },
+  "test_file_limits": {
+    "max_upload_size_mb": 100,
+    "max_email_attachment_mb": 50,
+    "allowed_extensions": ["pdf", "epub", "mobi", "txt", "doc", "docx"]
+  }
+}
