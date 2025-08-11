@@ -191,23 +191,15 @@ class TestKindleTransferApp(unittest.TestCase):
         self.assertEqual(len(saved_files), 1)
         self.assertIn('test.pdf', saved_files[0])
     
-    @patch('app.convert_pdf_to_epub')
-    def test_convert_pdf(self, mock_convert):
-        """测试PDF转换"""
+    def test_convert_pdf_no_conversion(self):
+        """测试PDF不转换（当前默认配置）"""
         # 创建测试PDF文件
         test_pdf = os.path.join(self.upload_dir, 'test.pdf')
-        test_epub = os.path.join(self.upload_dir, 'test.epub')
         
         with open(test_pdf, 'wb') as f:
             f.write(b'PDF content')
         
-        # 模拟转换成功
-        mock_convert.return_value = test_epub
-        
-        # 创建EPUB文件以模拟转换结果
-        with open(test_epub, 'wb') as f:
-            f.write(b'EPUB content')
-        
+        # 当前配置默认不转换PDF
         response = self.client.post('/api/convert',
                                    data=json.dumps({'filepath': test_pdf}),
                                    content_type='application/json')
@@ -216,9 +208,9 @@ class TestKindleTransferApp(unittest.TestCase):
         
         data = json.loads(response.data)
         self.assertTrue(data['success'])
-        self.assertEqual(data['message'], '转换成功')
-        self.assertEqual(data['converted_path'], test_epub)
-        self.assertEqual(data['format'], 'EPUB')
+        self.assertEqual(data['message'], '无需转换，直接发送PDF')
+        self.assertEqual(data['converted_path'], test_pdf)
+        self.assertEqual(data['format'], 'PDF')
     
     def test_convert_non_pdf(self):
         """测试非PDF文件转换"""

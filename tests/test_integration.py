@@ -86,17 +86,10 @@ class TestIntegration(unittest.TestCase):
             f.write(b'MOBI content for integration testing')
     
     @patch('app.send_to_kindle')
-    @patch('app.convert_pdf_to_epub')
-    def test_complete_workflow_pdf(self, mock_convert, mock_send):
-        """测试完整工作流程 - PDF文件"""
+    def test_complete_workflow_pdf(self, mock_send):
+        """测试完整工作流程 - PDF文件（不转换）"""
         # 设置模拟返回值
-        converted_epub = os.path.join(self.upload_dir, 'converted.epub')
-        mock_convert.return_value = converted_epub
         mock_send.return_value = True
-        
-        # 创建转换后的文件
-        with open(converted_epub, 'wb') as f:
-            f.write(b'Converted EPUB content')
         
         # 1. 上传PDF文件
         with open(self.test_pdf, 'rb') as f:
@@ -124,7 +117,7 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(convert_response.status_code, 200)
         convert_data = json.loads(convert_response.data)
         self.assertTrue(convert_data['success'])
-        self.assertEqual(convert_data['format'], 'EPUB')
+        self.assertEqual(convert_data['format'], 'PDF')  # 现在直接返回PDF
         
         # 3. 发送到Kindle
         send_response = self.client.post(
@@ -138,7 +131,6 @@ class TestIntegration(unittest.TestCase):
         self.assertTrue(send_data['success'])
         
         # 验证调用
-        mock_convert.assert_called_once()
         mock_send.assert_called_once()
     
     @patch('app.send_to_kindle')
@@ -184,17 +176,10 @@ class TestIntegration(unittest.TestCase):
         self.assertTrue(send_data['success'])
     
     @patch('app.send_to_kindle')
-    @patch('app.convert_pdf_to_epub')
-    def test_one_click_process(self, mock_convert, mock_send):
+    def test_one_click_process(self, mock_send):
         """测试一键处理功能"""
         # 设置模拟返回值
-        converted_epub = os.path.join(self.upload_dir, 'converted.epub')
-        mock_convert.return_value = converted_epub
         mock_send.return_value = True
-        
-        # 创建转换后的文件
-        with open(converted_epub, 'wb') as f:
-            f.write(b'Converted EPUB content')
         
         # 使用一键处理API
         with open(self.test_pdf, 'rb') as f:
@@ -211,11 +196,10 @@ class TestIntegration(unittest.TestCase):
         
         self.assertTrue(data['success'])
         self.assertEqual(data['message'], '处理完成！文件已发送到Kindle')
-        self.assertTrue(data['details']['converted'])
+        self.assertFalse(data['details']['converted'])  # PDF不转换
         self.assertEqual(data['details']['sent_to'], 'integration_test@kindle.com')
         
-        # 验证所有步骤都被执行
-        mock_convert.assert_called_once()
+        # 验证调用
         mock_send.assert_called_once()
     
     def test_history_tracking(self):
@@ -304,11 +288,8 @@ class TestIntegration(unittest.TestCase):
         self.assertFalse(data['success'])
         self.assertEqual(data['message'], '发送失败，请检查配置')
     
-    @patch('app.convert_pdf_to_epub')
-    def test_error_handling_convert_failure(self, mock_convert):
-        """测试错误处理 - 转换失败"""
-        mock_convert.return_value = None
-        
+    def test_pdf_direct_send(self):
+        """测试PDF直接发送（不转换）"""
         # 创建测试PDF
         test_pdf = os.path.join(self.upload_dir, 'test.pdf')
         with open(test_pdf, 'wb') as f:
@@ -320,10 +301,11 @@ class TestIntegration(unittest.TestCase):
             content_type='application/json'
         )
         
-        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
-        self.assertFalse(data['success'])
-        self.assertEqual(data['message'], '转换失败')
+        self.assertTrue(data['success'])
+        self.assertEqual(data['message'], '无需转换，直接发送PDF')
+        self.assertEqual(data['format'], 'PDF')
     
     def test_multiple_file_formats(self):
         """测试多种文件格式支持"""
@@ -399,8 +381,7 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(self.app.config['MAX_CONTENT_LENGTH'], 100 * 1024 * 1024)
     
     @patch('app.send_to_kindle')
-    @patch('app.convert_pdf_to_epub')
-    def test_chinese_filename_support(self, mock_convert, mock_send):
+    def test_chinese_filename_support(self, mock_send):
         """测试中文文件名支持"""
         mock_send.return_value = True
         

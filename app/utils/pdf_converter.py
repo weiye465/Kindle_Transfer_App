@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 PDF转换工具 - 使用Calibre转换PDF到EPUB
+注意：当前配置默认不转换PDF，直接发送原始PDF文件到Kindle
 """
 import os
 import subprocess

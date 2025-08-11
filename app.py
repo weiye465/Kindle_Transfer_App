@@ -16,6 +16,7 @@ import shutil
 # 导入工具模块
 from app.utils.pdf_converter import convert_pdf_to_epub
 from app.utils.kindle_sender import send_to_kindle
+from app.utils.file_helper import safe_filename, generate_unique_filename
 
 app = Flask(__name__, 
             template_folder='app/templates',
@@ -25,6 +26,7 @@ app = Flask(__name__,
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB
 app.config['ALLOWED_EXTENSIONS'] = {'pdf', 'epub', 'mobi', 'txt', 'doc', 'docx'}
+app.config['CONVERT_PDF_TO_EPUB'] = False  # 是否转换PDF到EPUB，False则直接发送PDF
 
 # 配置文件路径
 CONFIG_FILE = 'config.json'
@@ -89,10 +91,10 @@ def upload_file():
     if not allowed_file(file.filename):
         return jsonify({'success': False, 'message': '不支持的文件格式'}), 400
     
-    # 保存文件
-    filename = secure_filename(file.filename)
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = f"{timestamp}_{filename}"
+    # 保存文件，保留原始文件名
+    original_filename = file.filename
+    # 生成唯一且安全的文件名（保留中文）
+    filename = generate_unique_filename(original_filename, app.config['UPLOAD_FOLDER'])
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(filepath)
     
@@ -103,9 +105,10 @@ def upload_file():
         'success': True,
         'message': '文件上传成功',
         'file': {
-            'name': file.filename,
+            'name': original_filename,  # 返回原始文件名
             'path': filepath,
-            'size': round(file_size, 2)
+            'size': round(file_size, 2),
+            'saved_as': filename  # 实际保存的文件名
         }
     })
 
@@ -119,18 +122,28 @@ def convert_file():
         return jsonify({'success': False, 'message': '文件不存在'}), 400
     
     try:
-        # 如果是PDF，转换为EPUB
+        # 如果是PDF，根据配置决定是否转换
         if filepath.lower().endswith('.pdf'):
-            epub_path = convert_pdf_to_epub(filepath)
-            if epub_path and os.path.exists(epub_path):
+            if app.config.get('CONVERT_PDF_TO_EPUB', False):
+                # 转换为EPUB
+                epub_path = convert_pdf_to_epub(filepath)
+                if epub_path and os.path.exists(epub_path):
+                    return jsonify({
+                        'success': True,
+                        'message': '转换成功',
+                        'converted_path': epub_path,
+                        'format': 'EPUB'
+                    })
+                else:
+                    return jsonify({'success': False, 'message': '转换失败'}), 500
+            else:
+                # 直接返回PDF，不转换
                 return jsonify({
                     'success': True,
-                    'message': '转换成功',
-                    'converted_path': epub_path,
-                    'format': 'EPUB'
+                    'message': '无需转换，直接发送PDF',
+                    'converted_path': filepath,
+                    'format': 'PDF'
                 })
-            else:
-                return jsonify({'success': False, 'message': '转换失败'}), 500
         else:
             # 其他格式直接返回
             return jsonify({
@@ -197,16 +210,15 @@ def process_file():
         return jsonify({'success': False, 'message': '不支持的文件格式'}), 400
     
     try:
-        # 1. 保存文件
-        filename = secure_filename(file.filename)
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"{timestamp}_{filename}"
+        # 1. 保存文件，保留原始文件名
+        original_filename = file.filename
+        filename = generate_unique_filename(original_filename, app.config['UPLOAD_FOLDER'])
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
         
         # 2. 转换格式（如果需要）
         final_path = filepath
-        if filepath.lower().endswith('.pdf'):
+        if filepath.lower().endswith('.pdf') and app.config.get('CONVERT_PDF_TO_EPUB', False):
             epub_path = convert_pdf_to_epub(filepath)
             if epub_path and os.path.exists(epub_path):
                 final_path = epub_path
@@ -236,9 +248,10 @@ def process_file():
                 'success': True,
                 'message': '处理完成！文件已发送到Kindle',
                 'details': {
-                    'original_file': file.filename,
+                    'original_file': original_filename,  # 使用原始文件名
                     'converted': filepath != final_path,
-                    'sent_to': config['kindle_email']
+                    'sent_to': config['kindle_email'],
+                    'format': 'EPUB' if filepath != final_path else filepath.split('.')[-1].upper()
                 }
             })
         else:
