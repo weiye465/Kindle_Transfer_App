@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   kindle-transfer:
-    image: kindle-transfer:latest
+    image: handsomeweiye/kindle-transfer:v3
     container_name: kindle-transfer-app
     restart: always  # 生产环境使用always
     ports:
@@ -32,8 +32,8 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '4'
+          memory: 2G
+        reservations:
           cpus: '1'
           memory: 512M
-        reservations:
-          cpus: '0.5'
-          memory: 256M
