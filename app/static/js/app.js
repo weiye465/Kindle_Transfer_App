@@ -72,36 +72,108 @@ async function processFile() {
     
     progressContainer.classList.remove('hidden');
     
+    const startTime = Date.now();
+    console.log('=== 开始上传文件 ===');
+    console.log(`文件名: ${currentFile.name}`);
+    console.log(`文件大小: ${(currentFile.size / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`文件类型: ${currentFile.type}`);
+    
     try {
-        // 上传文件
-        progressText.textContent = '上传文件中...';
-        updateProgress(30);
+        // 准备上传
+        progressText.textContent = '准备上传...';
+        updateProgress(10);
         
         const formData = new FormData();
         formData.append('file', currentFile);
         
-        const response = await fetch('/api/process', {
-            method: 'POST',
-            body: formData
+        // 创建XMLHttpRequest以监控上传进度
+        const xhr = new XMLHttpRequest();
+        
+        // 监听上传进度
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+                const percentComplete = Math.round((e.loaded / e.total) * 100);
+                const uploadSpeed = (e.loaded / 1024 / 1024) / ((Date.now() - startTime) / 1000);
+                
+                console.log(`上传进度: ${percentComplete}%, 速度: ${uploadSpeed.toFixed(2)} MB/s`);
+                
+                // 上传阶段占60%进度
+                const displayPercent = Math.round(percentComplete * 0.6);
+                updateProgress(displayPercent);
+                progressText.textContent = `上传中... ${percentComplete}% (${uploadSpeed.toFixed(1)} MB/s)`;
+            }
         });
         
-        const result = await response.json();
-        
-        if (result.success) {
-            updateProgress(100);
-            progressText.textContent = '发送成功！';
-            showNotification(result.message, 'success');
+        // 监听状态变化
+        xhr.onreadystatechange = function() {
+            console.log(`XHR状态: readyState=${xhr.readyState}, status=${xhr.status}`);
             
-            // 刷新历史记录
-            setTimeout(() => {
-                loadHistory();
-                resetUploadArea();
-            }, 2000);
-        } else {
-            throw new Error(result.message);
-        }
+            if (xhr.readyState === 4) {
+                const uploadTime = (Date.now() - startTime) / 1000;
+                console.log(`上传完成，耗时: ${uploadTime.toFixed(2)}秒`);
+                
+                if (xhr.status === 200) {
+                    try {
+                        const result = JSON.parse(xhr.responseText);
+                        console.log('服务器响应:', result);
+                        
+                        if (result.success) {
+                            updateProgress(100);
+                            progressText.textContent = '发送成功！';
+                            showNotification(result.message, 'success');
+                            
+                            if (result.details && result.details.processing_time) {
+                                console.log(`服务器处理时间: ${result.details.processing_time}`);
+                            }
+                            
+                            // 刷新历史记录
+                            setTimeout(() => {
+                                loadHistory();
+                                resetUploadArea();
+                            }, 2000);
+                        } else {
+                            throw new Error(result.message);
+                        }
+                    } catch (e) {
+                        console.error('解析响应失败:', e);
+                        throw new Error('服务器响应格式错误');
+                    }
+                } else {
+                    console.error(`上传失败: HTTP ${xhr.status}`);
+                    throw new Error(`上传失败: HTTP ${xhr.status}`);
+                }
+            }
+        };
+        
+        // 监听错误
+        xhr.onerror = function() {
+            const uploadTime = (Date.now() - startTime) / 1000;
+            console.error(`网络错误，耗时: ${uploadTime.toFixed(2)}秒`);
+            showNotification('网络连接失败，请检查网络', 'error');
+            progressContainer.classList.add('hidden');
+        };
+        
+        // 监听超时
+        xhr.ontimeout = function() {
+            const uploadTime = (Date.now() - startTime) / 1000;
+            console.error(`请求超时，耗时: ${uploadTime.toFixed(2)}秒`);
+            showNotification('上传超时，请重试', 'error');
+            progressContainer.classList.add('hidden');
+        };
+        
+        // 设置超时（5分钟）
+        xhr.timeout = 300000;
+        
+        // 开始上传
+        console.log('开始发送请求...');
+        progressText.textContent = '连接服务器...';
+        updateProgress(5);
+        
+        xhr.open('POST', '/api/process', true);
+        xhr.send(formData);
         
     } catch (error) {
+        console.error('处理失败:', error);
         showNotification('处理失败: ' + error.message, 'error');
         progressContainer.classList.add('hidden');
     }

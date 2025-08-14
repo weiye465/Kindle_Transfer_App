@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   kindle-transfer:
-    image: handsomeweiye/kindle-transfer:v3
+    image: handsomeweiye/kindle-transfer:v4
     container_name: kindle-transfer-app
     restart: always  # 生产环境使用always
     ports:
