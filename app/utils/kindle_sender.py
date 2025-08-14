@@ -35,37 +35,47 @@ def send_to_kindle(
     Returns:
         bool: 是否发送成功
     """
+    print(f"[KINDLE-SEND] ========== 开始发送文件到Kindle ==========")
+    print(f"[KINDLE-SEND] 文件路径: {file_path}")
+    print(f"[KINDLE-SEND] Kindle邮箱: {kindle_email}")
+    print(f"[KINDLE-SEND] SMTP服务器: {smtp_server}:{smtp_port}")
     
     file_path = Path(file_path)
     
     if not file_path.exists():
-        print(f"错误: 文件不存在 - {file_path}")
+        print(f"[KINDLE-SEND] 错误: 文件不存在 - {file_path}")
         return False
     
     # 检查文件大小（邮件限制50MB）
     file_size_mb = file_path.stat().st_size / 1024 / 1024
+    print(f"[KINDLE-SEND] 文件大小: {file_size_mb:.1f}MB")
+    
     if file_size_mb > 50:
-        print(f"警告: 文件大小 {file_size_mb:.1f}MB 超过50MB限制")
+        print(f"[KINDLE-SEND] 警告: 文件大小 {file_size_mb:.1f}MB 超过50MB限制")
         return False
     
-    print(f"准备发送: {file_path.name} ({file_size_mb:.1f}MB)")
-    print(f"发送到: {kindle_email}")
+    print(f"[KINDLE-SEND] 准备发送: {file_path.name} ({file_size_mb:.1f}MB)")
+    print(f"[KINDLE-SEND] 发送到: {kindle_email}")
     
     try:
         # 创建邮件
+        print(f"[KINDLE-SEND] 创建邮件...")
         msg = MIMEMultipart()
         msg['From'] = sender_email
         msg['To'] = kindle_email
         msg['Subject'] = subject
+        print(f"[KINDLE-SEND] 邮件主题: {subject}")
         
         # 添加邮件正文
         body = f"Sending {file_path.name} to Kindle\n\nKindle Transfer App"
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
         
         # 添加附件
+        print(f"[KINDLE-SEND] 添加附件: {file_path.name}")
         with open(file_path, 'rb') as attachment:
             part = MIMEBase('application', 'octet-stream')
             part.set_payload(attachment.read())
+        print(f"[KINDLE-SEND] 附件加载完成")
         
         encoders.encode_base64(part)
         
@@ -77,39 +87,55 @@ def send_to_kindle(
             filename=('utf-8', '', filename)
         )
         msg.attach(part)
+        print(f"[KINDLE-SEND] 邮件构建完成")
         
         # 连接SMTP服务器
-        print(f"连接SMTP服务器: {smtp_server}:{smtp_port}")
+        print(f"[KINDLE-SEND] 连接SMTP服务器: {smtp_server}:{smtp_port}")
         
         if smtp_port == 465:
             # SSL连接
+            print(f"[KINDLE-SEND] 使用SSL连接")
             server = smtplib.SMTP_SSL(smtp_server, smtp_port)
         else:
             # TLS连接
+            print(f"[KINDLE-SEND] 使用TLS连接")
             server = smtplib.SMTP(smtp_server, smtp_port)
             server.starttls()
         
+        print(f"[KINDLE-SEND] SMTP服务器连接成功")
+        
         # 登录
-        print("登录邮箱...")
+        print(f"[KINDLE-SEND] 登录邮箱: {sender_email}")
         server.login(sender_email, sender_password)
+        print(f"[KINDLE-SEND] 邮箱登录成功")
         
         # 发送邮件
-        print("发送邮件...")
+        print(f"[KINDLE-SEND] 发送邮件...")
+        print(f"[KINDLE-SEND] 发件人: {sender_email}")
+        print(f"[KINDLE-SEND] 收件人: {kindle_email}")
+        
         text = msg.as_string()
+        print(f"[KINDLE-SEND] 邮件大小: {len(text) / 1024:.1f}KB")
+        
         server.sendmail(sender_email, kindle_email, text)
         server.quit()
         
-        print("发送成功！")
+        print(f"[KINDLE-SEND] 发送成功！")
+        print(f"[KINDLE-SEND] ========== 发送完成 ==========")
         return True
         
-    except smtplib.SMTPAuthenticationError:
-        print("错误: 邮箱认证失败，请检查邮箱和密码/授权码")
+    except smtplib.SMTPAuthenticationError as e:
+        print(f"[KINDLE-SEND] 错误: 邮箱认证失败，请检查邮箱和密码/授权码")
+        print(f"[KINDLE-SEND] 详细错误: {e}")
+        print(f"[KINDLE-SEND] ========== 发送失败 ==========")
         return False
     except smtplib.SMTPException as e:
-        print(f"SMTP错误: {e}")
+        print(f"[KINDLE-SEND] SMTP错误: {e}")
+        print(f"[KINDLE-SEND] ========== 发送失败 ==========")
         return False
     except Exception as e:
-        print(f"发送失败: {e}")
+        print(f"[KINDLE-SEND] 发送失败: {e}")
+        print(f"[KINDLE-SEND] ========== 发送失败 ==========")
         return False
 
 def get_smtp_config(email):

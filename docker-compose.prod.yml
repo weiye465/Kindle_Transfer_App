@@ -4,16 +4,15 @@ services:
   kindle-transfer:
     image: kindle-transfer:latest
     container_name: kindle-transfer-app
-    restart: unless-stopped
+    restart: always  # 生产环境使用always
     ports:
-      - "5000:5000"
+      - "2437:5000"  # 生产环境可能使用80端口
     volumes:
-      # 持久化数据
+      # 只挂载数据目录，不挂载代码
       - ./uploads:/app/uploads
       - ./config.json:/app/config.json
       - ./logs:/app/logs
     environment:
-      # 从.env文件读取或直接配置
       - KINDLE_EMAIL=${KINDLE_EMAIL}
       - SMTP_EMAIL=${SMTP_EMAIL}
       - SMTP_PASSWORD=${SMTP_PASSWORD}
@@ -29,3 +28,12 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M

@@ -47,16 +47,27 @@ python run.py
 
 ### 使用Docker Compose（推荐）
 
-1. 构建并启动：
+#### 开发环境
 
 ```bash
+# 启动服务
 docker-compose up -d
+
+# 查看日志
+docker-compose logs -f
+
+# 停止服务
+docker-compose down
 ```
 
-2. 停止服务：
+#### 生产环境
 
 ```bash
-docker-compose down
+# 使用生产配置启动（端口2437）
+docker-compose -f docker-compose.prod.yml up -d
+
+# 重新构建并启动
+docker-compose -f docker-compose.prod.yml up -d --build
 ```
 
 ### 使用Docker命令
@@ -138,6 +149,54 @@ docker run -d \
 - 前端：TailwindCSS + Font Awesome
 - 部署：Docker + Gunicorn
 
+# 更新日志
+
+## 2024-08-13 更新 - 修复生产环境部署问题
+
+### 🐛 问题修复
+
+1. **解决了Gunicorn导入错误**
+   - 问题原因：`app.py`文件名与`app/`文件夹名冲突，导致Python模块导入混乱
+   - 解决方案：
+     - 创建`main.py`作为主入口文件（从`app.py`复制）
+     - 修改Dockerfile使用`main:app`作为Gunicorn启动参数
+     - 创建`wsgi.py`作为WSGI入口（备用）
+
+2. **添加了详细的日志记录**
+   - 在所有文件上传、转换、发送的关键位置添加了console.log
+   - 日志格式：
+     - `[UPLOAD]` - 文件上传相关
+     - `[SEND]` - 文件发送相关  
+     - `[CONVERT]` - 文件转换相关
+     - `[API-SEND]` - API接口相关
+     - `[KINDLE-SEND]` - Kindle邮件发送相关
+
+3. **优化了Docker配置**
+   - 分离开发和生产环境配置
+   - `docker-compose.yml` - 开发环境（端口5000）
+   - `docker-compose.prod.yml` - 生产环境（端口2437）
+   - 移除了代码热更新挂载（避免覆盖容器内Python环境）
+
+### 📝 新增文件
+- `main.py` - 主入口文件（从app.py复制）
+- `wsgi.py` - WSGI入口文件
+- `docker-compose.prod.yml` - 生产环境配置
+- `docker-compose.dev.yml` - 开发环境配置（带热更新）
+- `deploy.md` - 部署指南文档
+
+### 🚀 部署方式
+
+**开发环境：**
+```bash
+docker-compose up -d
+```
+
+**生产环境：**
+```bash
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+---
 
 # 更新说明 - PDF转换开关
 
