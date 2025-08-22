@@ -10,8 +10,8 @@ services:
     volumes:
       # 只挂载数据目录，不挂载代码
       - ./uploads:/app/uploads
-      - ./config.json:/app/config.json
       - ./logs:/app/logs
+      # config.json已包含在镜像中，不需要挂载
     environment:
       - KINDLE_EMAIL=${KINDLE_EMAIL}
       - SMTP_EMAIL=${SMTP_EMAIL}
